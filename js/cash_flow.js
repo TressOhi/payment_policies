@@ -11,11 +11,11 @@ let assigned_cost_items = {
     'category': 'semilla'
 };
 
-let payment_policy = [[50, 0], [50, 30]];
+let payment_policy = [[75, "$sow_date-15"], [25, "$sow_date+15"]];
 
 function extract_dynamic_date (dynamic_date) {
 
-    let pattern = /\$(?<period>harvest_date|sow_date|campaign_start_date|campaign_end_date)(?<op>\-|\+)(?<ops>\d+)/g;
+    let pattern = /\$(?<period>harvest_date|sow_date|campaign_start_date|campaign_end_date)(?<op>\-|\+)(?<days>\d+)/g;
     let regex = new RegExp(pattern)
     let myArray = regex.exec(dynamic_date);
     return myArray
@@ -70,14 +70,48 @@ function validate_payment_policy (payment_policy) {
     return [true, '']
 };
 
-// function create_cash_flow (activity_slice, assigned_cost_items, payment_policy) {
+function create_cash_flow (activity_slice, assigned_cost_items, payment_policy) {
 
-//     let cash_flow = [];
-//     let total_cost = assigned_cost_items['item_cost'];
+    let cash_flow = [];
+    let total_cost = assigned_cost_items['item_cost'];
+    
+    
+    
+    for(let i = 0; i< payment_policy.length; i++){
+      let fraction = payment_policy[i][0];
+      let dynamic_date = payment_policy[i][1];
+      let payment_cost = fraction / 100*total_cost;
+      let payment_date;
+      
+      if(typeof dynamic_date == 'number'){
+        date_used = assigned_cost_items['date_used'];
+        
+        payment_date = new Date()
+        payment_date.setDate(date_used.getDate() + dynamic_date);
+        
+      }
+      if(typeof dynamic_date == 'string'){
+        dynamic_date = extract_dynamic_date(dynamic_date);
+        let op = dynamic_date[2];
+        let days = dynamic_date[3];
+        let period = dynamic_date[1];
+        
+        
+        if(op == '+'){
+          let date_used = activity_slice[period];
+          payment_date = new Date();
+          payment_date.setDate(date_used.getDate() + days);
+        }
+        if(op == '-'){
+          let date_used = activity_slice[period];
+          payment_date = new Date();
+          payment_date.setDate(date_used.getDate() - days);
 
+        }
+      }
+    
+    cash_flow.push([payment_date, payment_cost]);
+    }
+  return cash_flow;
 
-
-// };
-
-console.log(extract_dynamic_date('$sow_date+50'));
-console.log(validate_payment_policy(payment_policy));
+};
